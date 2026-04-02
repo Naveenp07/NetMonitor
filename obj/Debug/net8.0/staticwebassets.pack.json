@@ -1,0 +1,25 @@
+{
+  "Files": [
+    {
+      "Id": "D:\\NetworkMonitor\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.NetworkMonitor.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.NetworkMonitor.props",
+      "PackagePath": "build\\NetworkMonitor.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.NetworkMonitor.props",
+      "PackagePath": "buildMultiTargeting\\NetworkMonitor.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.NetworkMonitor.props",
+      "PackagePath": "buildTransitive\\NetworkMonitor.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

@@ -1,0 +1,39 @@
+{
+  "Version": 1,
+  "Hash": "pngAW9EhsQnkku76dXjgUyx5Nuriq04dH5e+eCjWp/g=",
+  "Source": "NetworkMonitor",
+  "BasePath": "_content/NetworkMonitor",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "NetworkMonitor\\wwwroot",
+      "Source": "NetworkMonitor",
+      "ContentRoot": "D:\\NetworkMonitor\\wwwroot\\",
+      "BasePath": "_content/NetworkMonitor",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "D:\\NetworkMonitor\\wwwroot\\index.html",
+      "SourceId": "NetworkMonitor",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\NetworkMonitor\\wwwroot\\",
+      "BasePath": "_content/NetworkMonitor",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\index.html"
+    }
+  ]
+}

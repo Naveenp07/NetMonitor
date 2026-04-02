@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Enterprise Network Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+        }
+
+        /* Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: #020617;
+            padding: 20px;
+            border-right: 1px solid #1e293b;
+        }
+
+        .sidebar h2 {
+            color: #38bdf8;
+        }
+
+        .sidebar a {
+            display: block;
+            margin: 10px 0;
+            color: #94a3b8;
+            text-decoration: none;
+        }
+
+        /* Main */
+        .main {
+            padding: 20px;
+        }
+
+        /* Cards */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .card h3 {
+            margin: 0;
+            color: #38bdf8;
+        }
+
+        .card p {
+            font-size: 24px;
+            margin: 5px 0;
+        }
+
+        /* Grid section */
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .up { color: #22c55e; }
+        .down { color: #ef4444; }
+
+        .chart-box {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        canvas {
+            height: 250px !important;
+        }
+
+        input, button {
+            padding: 8px;
+            margin: 5px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        button {
+            background: #38bdf8;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>NetMonitor</h2>
+        <a href="#">Dashboard</a>
+        <a href="#">Devices</a>
+        <a href="#">Alerts</a>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- Top Cards -->
+        <div class="cards">
+            <div class="card">
+                <h3>Total Devices</h3>
+                <p id="total">0</p>
+            </div>
+            <div class="card">
+                <h3>UP Devices</h3>
+                <p id="up">0</p>
+            </div>
+            <div class="card">
+                <h3>DOWN Devices</h3>
+                <p id="down">0</p>
+            </div>
+        </div>
+
+        <!-- Add Device -->
+        <div>
+            <input id="name" placeholder="Device Name">
+            <input id="ip" placeholder="IP Address">
+            <button onclick="addDevice()">Add</button>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid">
+
+            <!-- Table -->
+            <div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>IP</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data"></tbody>
+                </table>
+            </div>
+
+            <!-- Charts -->
+            <div>
+                <div class="chart-box">
+                    <h3>Status Overview</h3>
+                    <canvas id="statusChart"></canvas>
+                </div>
+
+                <div class="chart-box" style="margin-top:20px;">
+                    <h3>History</h3>
+                    <canvas id="historyChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+let statusChart, historyChart;
+
+async function loadData() {
+    let res = await fetch('/api/device');
+    let data = await res.json();
+
+    let up = 0, down = 0;
+
+    let table = "";
+    data.forEach(d => {
+        if (d.status === "UP") up++;
+        else down++;
+
+        table += `<tr>
+            <td>${d.name}</td>
+            <td>${d.ipAddress}</td>
+            <td class="${d.status === 'UP' ? 'up' : 'down'}">${d.status}</td>
+            <td><button onclick="deleteDevice(${d.id})">Delete</button></td>
+        </tr>`;
+    });
+
+    document.getElementById("data").innerHTML = table;
+
+    document.getElementById("total").innerText = data.length;
+    document.getElementById("up").innerText = up;
+    document.getElementById("down").innerText = down;
+
+    // Chart
+    if (statusChart) statusChart.destroy();
+
+    statusChart = new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['UP', 'DOWN'],
+            datasets: [{
+                data: [up, down]
+            }]
+        }
+    });
+}
+
+async function loadHistory() {
+    let res = await fetch('/api/devicelog');
+    let logs = await res.json();
+
+    let last = logs.slice(-30);
+
+    let labels = last.map(l => new Date(l.timestamp).toLocaleTimeString());
+    let values = last.map(l => l.status === "UP" ? 1 : 0);
+
+    if (historyChart) historyChart.destroy();
+
+    historyChart = new Chart(document.getElementById('historyChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Status",
+                data: values
+            }]
+        }
+    });
+}
+
+async function addDevice() {
+    let name = document.getElementById("name").value;
+    let ip = document.getElementById("ip").value;
+
+    await fetch('/api/device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, ipAddress: ip })
+    });
+
+    loadData();
+}
+
+async function deleteDevice(id) {
+    await fetch('/api/device/' + id, { method: 'DELETE' });
+    loadData();
+}
+
+setInterval(() => {
+    loadData();
+    loadHistory();
+}, 5000);
+
+loadData();
+loadHistory();
+</script>
+
+</body>
+</html>
