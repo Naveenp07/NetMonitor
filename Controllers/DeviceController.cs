@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NetworkMonitor.Models;   // Device, DeviceLog
-using NetworkMonitor.Services; // PingService
-using NetworkMonitor.Data;     // AppDbContext
+using NetworkMonitor.Models;
+using NetworkMonitor.Services;
+using NetworkMonitor.Data;
 
 namespace NetworkMonitor.Controllers
 {
@@ -19,16 +19,18 @@ namespace NetworkMonitor.Controllers
             _pingService = pingService;
         }
 
-        // GET: api/device
+        // 🔹 GET: api/device
         [HttpGet]
-        public async Task<ActionResult<List<Device>>> GetDevices()
+        public async Task<IActionResult> GetDevices()
         {
             var devices = await _context.Devices.ToListAsync();
 
+            // Update status for each device based on PingService
             foreach (var device in devices)
             {
                 var status = _pingService.CheckStatus(device.IPAddress);
 
+                // Log status change
                 if (device.Status != status)
                 {
                     _context.DeviceLogs.Add(new DeviceLog
@@ -37,47 +39,70 @@ namespace NetworkMonitor.Controllers
                         Status = status,
                         Timestamp = DateTime.Now
                     });
+                    device.Status = status;
                 }
-
-                device.Status = status;
             }
 
             await _context.SaveChangesAsync();
 
-            return devices;
+            // Return JSON with camelCase properties for JS frontend
+            var result = devices.Select(d => new
+            {
+                id = d.Id,
+                name = d.Name,
+                ipAddress = d.IPAddress,
+                status = d.Status
+            });
+
+            return Ok(result);
         }
-		 [HttpGet("stats")]
-    public async Task<IActionResult> GetDeviceStats()
-    {
-        var devices = await _context.Devices.ToListAsync();
 
-        var upCount = devices.Count(d => d.Status == "UP");
-        var downCount = devices.Count(d => d.Status == "DOWN");
-
-        return Ok(new
+        // 🔹 GET: api/device/stats (for dashboard charts)
+        [HttpGet("stats")]
+        public async Task<IActionResult> GetDeviceStats()
         {
-            labels = new[] { "UP", "DOWN" },
-            data = new[] { upCount, downCount }
-        });
-    }
+            var devices = await _context.Devices.ToListAsync();
+            var upCount = devices.Count(d => d.Status == "UP");
+            var downCount = devices.Count(d => d.Status == "DOWN");
 
+            return Ok(new
+            {
+                labels = new[] { "UP", "DOWN" },
+                data = new[] { upCount, downCount }
+            });
+        }
 
-        // POST: api/device
+        // 🔹 POST: api/device (add new device)
         [HttpPost]
-        public async Task<ActionResult<Device>> AddDevice(Device device)
+        public async Task<IActionResult> AddDevice([FromBody] Device device)
         {
+            if (string.IsNullOrWhiteSpace(device.Name) || string.IsNullOrWhiteSpace(device.IPAddress))
+            {
+                return BadRequest("Name and IP Address are required.");
+            }
+
+            device.Status = "UNKNOWN";
             _context.Devices.Add(device);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetDevices), new { id = device.Id }, device);
+            var result = new
+            {
+                id = device.Id,
+                name = device.Name,
+                ipAddress = device.IPAddress,
+                status = device.Status
+            };
+
+            return CreatedAtAction(nameof(GetDevices), new { id = device.Id }, result);
         }
 
-        // DELETE: api/device/{id}
+        // 🔹 DELETE: api/device/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDevice(int id)
         {
             var device = await _context.Devices.FindAsync(id);
-            if (device == null) return NotFound();
+            if (device == null)
+                return NotFound();
 
             _context.Devices.Remove(device);
             await _context.SaveChangesAsync();

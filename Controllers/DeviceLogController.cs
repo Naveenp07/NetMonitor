@@ -18,10 +18,22 @@ namespace NetworkMonitor.Controllers
 
         // GET: api/devicelog
         [HttpGet]
-        public async Task<ActionResult<List<DeviceLog>>> GetLogs()
+        public async Task<IActionResult> GetLogs()
         {
+            // join DeviceLogs with Devices manually
             var logs = await _context.DeviceLogs
-                .OrderBy(d => d.Timestamp)
+                .Join(_context.Devices,
+                      log => log.DeviceId,
+                      device => device.Id,
+                      (log, device) => new
+                      {
+                          id = log.Id,
+                          deviceName = device.Name,
+                          ipAddress = device.IPAddress,
+                          status = log.Status,
+                          timestamp = log.Timestamp
+                      })
+                .OrderBy(l => l.timestamp)
                 .ToListAsync();
 
             return Ok(logs);

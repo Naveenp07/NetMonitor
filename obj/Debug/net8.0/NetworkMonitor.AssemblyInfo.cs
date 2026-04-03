@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.AspNetCore.Identity.UI.UIFrameworkAttribute("Bootstrap5")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("NetworkMonitor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+49d511007b41f26259f82f27b32b765d5e293a18")]
 [assembly: System.Reflection.AssemblyProductAttribute("NetworkMonitor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NetworkMonitor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

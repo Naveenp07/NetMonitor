@@ -9,9 +9,8 @@ D:\NetworkMonitor\bin\Debug\net8.0\Azure.Identity.dll
 D:\NetworkMonitor\bin\Debug\net8.0\BouncyCastle.Cryptography.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Humanizer.dll
 D:\NetworkMonitor\bin\Debug\net8.0\MailKit.dll
-D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.AspNetCore.Cryptography.Internal.dll
-D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.AspNetCore.Cryptography.KeyDerivation.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
+D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.UI.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.CodeAnalysis.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.CodeAnalysis.CSharp.dll
@@ -24,9 +23,6 @@ D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Design.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Relational.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.SqlServer.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.Extensions.DependencyModel.dll
-D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.Extensions.Identity.Core.dll
-D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.Extensions.Identity.Stores.dll
-D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.Extensions.Options.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.Identity.Client.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.Identity.Client.Extensions.Msal.dll
 D:\NetworkMonitor\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
@@ -125,7 +121,9 @@ D:\NetworkMonitor\obj\Debug\net8.0\NetworkMonitor.GeneratedMSBuildEditorConfig.e
 D:\NetworkMonitor\obj\Debug\net8.0\NetworkMonitor.AssemblyInfoInputs.cache
 D:\NetworkMonitor\obj\Debug\net8.0\NetworkMonitor.AssemblyInfo.cs
 D:\NetworkMonitor\obj\Debug\net8.0\NetworkMonitor.csproj.CoreCompileInputs.cache
+D:\NetworkMonitor\obj\Debug\net8.0\NetworkMonitor.MvcApplicationPartsAssemblyInfo.cs
 D:\NetworkMonitor\obj\Debug\net8.0\NetworkMonitor.MvcApplicationPartsAssemblyInfo.cache
+D:\NetworkMonitor\obj\Debug\net8.0\NetworkMonitor.sourcelink.json
 D:\NetworkMonitor\obj\Debug\net8.0\staticwebassets.build.json
 D:\NetworkMonitor\obj\Debug\net8.0\staticwebassets.development.json
 D:\NetworkMonitor\obj\Debug\net8.0\staticwebassets\msbuild.NetworkMonitor.Microsoft.AspNetCore.StaticWebAssets.props

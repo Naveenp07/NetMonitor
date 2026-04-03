@@ -1,21 +1,24 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
 using NetworkMonitor.Data;
 using NetworkMonitor.Models;
-using System.Diagnostics;
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace NetworkMonitor.Services
 {
     public class MonitorService : BackgroundService
     {
-        private readonly AppDbContext _context;
+        private readonly IServiceProvider _serviceProvider;
         private readonly PingService _pingService;
 
-        public MonitorService(AppDbContext context, PingService pingService)
+        public MonitorService(IServiceProvider serviceProvider, PingService pingService)
         {
-            _context = context;
+            _serviceProvider = serviceProvider;
             _pingService = pingService;
         }
 
@@ -23,84 +26,107 @@ namespace NetworkMonitor.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                // 🔥 STEP 1: Warm up ARP (discover devices)
-                await PingSubnet();
-
-                // 🔥 STEP 2: Get active IPs from ARP
-                var activeIPs = GetActiveIPs();
-
-                foreach (var ip in activeIPs)
+                try
                 {
-                    var device = await _context.Devices
-                        .FirstOrDefaultAsync(d => d.IPAddress == ip);
+                    using var scope = _serviceProvider.CreateScope();
+                    var _context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-                    // 🔹 Add new device if not exists
-                    if (device == null)
+                    // Step 1: Ping entire subnet to find active devices
+                    var activeIPs = await GetActiveIPsAsync();
+
+                    var tasks = new List<Task>();
+
+                    foreach (var ip in activeIPs)
                     {
-                        device = new Device
+                        tasks.Add(Task.Run(async () =>
                         {
-                            Name = ResolveHostName(ip),
-                            IPAddress = ip,
-                            Status = "Unknown"
-                        };
+                            // Get existing device or add new
+                            var device = await _context.Devices
+                                .FirstOrDefaultAsync(d => d.IPAddress == ip, stoppingToken);
 
-                        _context.Devices.Add(device);
+                            if (device == null)
+                            {
+                                device = new Device
+                                {
+                                    Name = await ResolveHostNameAsync(ip),
+                                    IPAddress = ip,
+                                    Status = "Unknown"
+                                };
+
+                                _context.Devices.Add(device);
+                                await _context.SaveChangesAsync(stoppingToken); // ensure Id is generated
+                            }
+
+                            // Check status asynchronously
+                            var status = await _pingService.CheckStatusAsync(ip);
+
+                            // Log status
+                            _context.DeviceLogs.Add(new DeviceLog
+                            {
+                                DeviceId = device.Id,
+                                Status = status,
+                                Timestamp = DateTime.Now
+                            });
+
+                            // Send alert if device goes down
+                            if (device.Status != status && status == "DOWN")
+                            {
+                                AlertService.SendEmailAlert(device);
+                                AlertService.SendTelegramAlert(device);
+                            }
+
+                            device.Status = status;
+                        }));
                     }
 
-                    // 🔹 Check status
-                    var status = _pingService.CheckStatus(ip);
+                    await Task.WhenAll(tasks);
 
-                    // 🔹 Log every check (important for graphs)
-                    _context.DeviceLogs.Add(new DeviceLog
-                    {
-                        DeviceId = device.Id,
-                        Status = status,
-                        Timestamp = DateTime.Now
-                    });
-
-                    // 🔹 Send alert if device goes DOWN
-                    if (device.Status != status && status == "DOWN")
-                    {
-                        AlertService.SendEmailAlert(device);
-                        AlertService.SendTelegramAlert(device);
-                    }
-
-                    device.Status = status;
+                    // Save all logs in one batch
+                    await _context.SaveChangesAsync(stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"MonitorService error: {ex.Message}");
                 }
 
-                // ✅ Save once (better performance)
-                await _context.SaveChangesAsync();
-
-                // 🔁 Run every 15 seconds
-                await Task.Delay(15000, stoppingToken);
+                // Wait 15 seconds before next cycle
+                await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
             }
         }
 
-        // 🔥 Scan full subnet to populate ARP table
-        private async Task PingSubnet()
+        // Async ping sweep to detect active IPs in subnet
+        private async Task<List<string>> GetActiveIPsAsync()
         {
+            var activeIPs = new List<string>();
             string baseIp = GetBaseIp();
+
             var tasks = new List<Task>();
 
             for (int i = 1; i <= 254; i++)
             {
                 string ip = baseIp + i;
-
-                tasks.Add(Task.Run(() =>
+                tasks.Add(Task.Run(async () =>
                 {
                     try
                     {
-                        using Ping ping = new Ping();
-                        ping.Send(ip, 100);
+                        var status = await _pingService.CheckStatusAsync(ip);
+                        if (status == "UP")
+                        {
+                            lock (activeIPs)
+                            {
+                                activeIPs.Add(ip);
+                            }
+                        }
                     }
                     catch { }
                 }));
             }
 
             await Task.WhenAll(tasks);
+            return activeIPs;
         }
 
-        // 🔥 Get base network IP automatically
+        // Determine base subnet automatically (e.g., 192.168.1.)
         private string GetBaseIp()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
@@ -117,55 +143,12 @@ namespace NetworkMonitor.Services
             return "192.168.0."; // fallback
         }
 
-        // 🔥 Read ARP table to get active devices
-        private List<string> GetActiveIPs()
-        {
-            var result = new List<string>();
-
-            try
-            {
-                Process arpProcess = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "arp",
-                        Arguments = "-a",
-                        RedirectStandardOutput = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    }
-                };
-
-                arpProcess.Start();
-                string output = arpProcess.StandardOutput.ReadToEnd();
-                arpProcess.WaitForExit();
-
-                var lines = output.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-
-                foreach (var line in lines)
-                {
-                    var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    if (parts.Length >= 2 && IPAddress.TryParse(parts[0], out _))
-                    {
-                        result.Add(parts[0]);
-                    }
-                }
-            }
-            catch
-            {
-                // ignore errors
-            }
-
-            return result;
-        }
-
-        // 🔥 Resolve hostname (makes UI professional)
-        private string ResolveHostName(string ip)
+        // Async hostname resolution
+        private async Task<string> ResolveHostNameAsync(string ip)
         {
             try
             {
-                var entry = Dns.GetHostEntry(ip);
+                var entry = await Dns.GetHostEntryAsync(ip);
                 return entry.HostName;
             }
             catch

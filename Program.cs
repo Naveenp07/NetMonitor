@@ -1,31 +1,44 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using NetworkMonitor.Models;
 using NetworkMonitor.Services;
 using NetworkMonitor.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
-builder.Services.AddControllers();
+// Services
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 
-// Add your app services
 builder.Services.AddScoped<DeviceService>();
-builder.Services.AddScoped<PingService>();
 
-// Background monitoring service
+builder.Services.AddSingleton<PingService>();
+
 builder.Services.AddHostedService<MonitorService>();
 
-// Database context
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer("Server=localhost;Database=NetworkMonitorDB;Trusted_Connection=True;TrustServerCertificate=True"));
 
+builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+})
+.AddEntityFrameworkStores<AppDbContext>();
+
 var app = builder.Build();
 
-// Serve static files
+app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// Map API controllers
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
+app.MapRazorPages();
+
+app.MapFallbackToFile("index.html");
 
 app.Run();
